@@ -1,0 +1,154 @@
+---
+title : "Interactive Visualizations"
+date: "04/04/2024"
+author: "Oskar Diyali"
+formal : html
+---
+
+```{r read_packages}
+#| message: false
+#| echo: false
+
+library(plotly)
+library(ggiraph)
+library(tidyverse)
+library(tidycensus)
+library(sf)
+library(leaflet)
+library(openintro)
+library(patchwork)
+
+```
+
+### Part 0
+
+### Making Plots Interactive
+
+```{r interactive_plots}
+
+df_hist<-
+duke_forest |>
+  mutate(garage = if_else(str_detect(parking, "Garage"), "Garage", "No garage")) |>
+  ggplot(aes(x = price, fill = garage)) +
+  geom_histogram() +
+  facet_wrap(~garage, ncol = 1) +
+  labs(
+    x = "Price in $",
+    y = "",
+    title = "Histogram of Price of Homes by Garage or not",
+    fill = "Garage or not"
+  )
+```
+
+
+```{r interactive_plots_2}
+df_scatter<-
+  ggplot(
+  duke_forest,
+  aes(x = area, y = price, color = year_built)) +
+  geom_point(size = 3) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Area of Home",
+    y = "Price of Home",
+    title = "Relationship between Price and Area by Year Built",
+    color = "Year Built"
+  )
+
+df_hist + df_scatter
+
+```
+
+` # See https://patchwork.data-imaginist.com/articles/patchwork.html `
+
+
+### Part 1
+
+Make the histogram interactive using 'ggigraph'.
+
+```{r ggigraph}
+
+df_hist_ggigraph<-
+duke_forest |>
+  mutate(garage = if_else(str_detect(parking, "Garage"), "Garage", "No garage")) |>
+  ggplot(aes(x = price, fill = garage)) +
+  
+  geom_histogram_interactive(aes(tooltip = paste0("Number of Homes\n", after_stat(count)))) +
+  facet_wrap(~garage, ncol = 1) +
+  labs(
+    x = "Price in $",
+    y = "",
+    title = "Histogram of Price of Homes by Garage or not",
+    fill = "Garage or not"
+  )
+
+girafe(ggobj=df_hist_ggigraph)
+df_hist_ggigraph
+
+```
+
+
+
+Make a scatterplot interactive using 'ggigraph'.
+
+```{r ggigraph_scatterplot}
+
+
+df_scatter_int <-
+  
+  ggplot(duke_forest, aes(x = price, y = year_built, color = year_built)) +
+  
+  geom_point_interactive(mapping = aes(tooltip = address ), size = 3) +
+  geom_smooth(se= FALSE) +
+  labs(
+    x = "Area of House",
+    y = "Price of House",
+    title = "Relationship between Price and Area by Year Built",
+    color = "Year Built"
+  ) +theme_minimal()
+
+girafe(ggobj = df_scatter_int)
+
+df_scatter_int
+```
+
+
+Make a scatterplot interactive.
+
+```{r scatterplot_interactive}
+
+
+df_scatter_int <-
+  
+  ggplot(duke_forest, aes(x = price, y = year_built, color = year_built)) +
+  
+  geom_point_interactive(mapping = aes(tooltip = scales::dollar(price)), size = 3) +
+  geom_smooth(se= FALSE) +
+  labs(
+    x = "Area of House",
+    y = "Price of House",
+    title = "Relationship between Price and Area by Year Built",
+    color = "Year Built"
+  ) +theme_minimal()
+
+girafe(ggobj = df_scatter_int)
+
+df_scatter_int
+```
+
+Make histogram interactive using `ploty`
+
+```{r histo-ploty}
+
+ggplotly(df_hist)
+
+```
+
+
+Make scatterplot interactive using `ploty`
+
+```{r scat-ploty}
+
+ggplotly(df_scatter)
+
+```
