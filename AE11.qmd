@@ -6,8 +6,6 @@ formal : html
 ---
 
 ```{r read_packages}
-#| message: false
-#| echo: false
 
 library(plotly)
 library(ggiraph)
@@ -17,6 +15,7 @@ library(sf)
 library(leaflet)
 library(openintro)
 library(patchwork)
+library(readr)
 
 ```
 
@@ -152,3 +151,93 @@ Make scatterplot interactive using `ploty`
 ggplotly(df_scatter)
 
 ```
+
+### Mapping
+
+Make Static Visualization on a US State.
+
+
+```{r census}
+
+census_api_key("943880cb49274f5dcad5a5a080efa4cd7a1f5900", 
+               overwrite=TRUE, install = TRUE) #once
+```
+
+```{r load}
+
+d10 <- load_variables(2010, "sf1", cache = TRUE)
+
+head(d10)
+
+my_variables <- c("PCT012I188, PCT012L001")
+
+#H001001	Total	HOUSING UNITS		
+#H002001	Total	URBAN AND RURAL		
+#H002002	Total!!Urban	URBAN AND RURAL		
+#H002003	Total!!Urban!!Inside urbanized areas	URBAN AND RURAL		
+#H002004	Total!!Urban!!Inside urban clusters	URBAN AND RURAL		
+#H002005	Total!!Rural	URBAN AND RURAL
+
+```
+
+```{r geo-ia}
+ia <- get_decennial(geography = "county", 
+        year = 2010,
+        variables = c(t_houseunits = "H001001"), 
+        state = "IA",
+        output = "wide",
+        geometry = T,
+        cache_table = T)
+
+
+```
+
+
+```{r stat-vis}
+
+ia_ggplot_map3 <- 
+ ia |> 
+    mutate(centroid = st_coordinates(st_centroid(geometry))) |>
+    ggplot() + 
+      geom_sf(color = "white", fill ="forestgreen") +
+      geom_point(aes(x=centroid[,1], y=centroid[,2],
+                     size=t_houseunits))+
+          labs(title = "Total Housing Units by County",
+               subtitle = "2010 US Census")+
+          theme_void()+
+    scale_size_continuous(range = c(1, 5)) 
+
+ia_ggplot_map3
+
+```
+
+Leaflet Map
+```{r leaflet_map}
+
+ia_wgs84 <- ia |> st_transform(crs = 4326) |> 
+  mutate(centroid = st_centroid(geometry))
+
+
+ia_leaf <- ia_wgs84 |>
+  leaflet() %>%
+  addPolygons(color = "purple", 
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 1.0,
+              fillOpacity = 0.5,
+              highlightOptions = 
+                highlightOptions(color = "white",
+                                  weight = 2,
+                                  bringToFront = TRUE)) %>%
+  leaflet::addCircleMarkers(lat = ~st_coordinates(centroid)[,"Y"],
+                             lng = ~st_coordinates(centroid)[,"X"],
+                             radius = ~t_houseunits/50000,
+                             popup = ~NAME,
+                             fillOpacity = 1,
+                             opacity = 1) 
+
+ia_leaf
+
+```
+
+
